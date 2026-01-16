@@ -6,7 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import requests
 
 # هذا هو التوكن الخاص بك:
-TOKEN = "8542996760:AAEK6emqFvTQW1WrNHXNDw7dAC7BM2eU_Mw"
+TOKEN = ""
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
