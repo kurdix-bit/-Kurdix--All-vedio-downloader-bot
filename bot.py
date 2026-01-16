@@ -3,7 +3,7 @@ import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import yt_dlp
+import requests
 
 # ضع هنا التوكن الذي حصلت عليه من BotFather
 TOKEN = "ضع_التوكن_الخاص_بك_هنا"
@@ -11,6 +11,7 @@ TOKEN = "ضع_التوكن_الخاص_بك_هنا"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+# نصوص الرسائل بمختلف اللغات
 MESSAGES = {
     "ar": "أرسل رابط الفيديو للتحميل 📥",
     "de": "Senden Sie den Video-Link zum Herunterladen 📥",
@@ -19,6 +20,7 @@ MESSAGES = {
     "ku_la": "Lînka vîdyoyê bişîne ji bo daxistinê 📥"
 }
 
+# دالة إنشاء قائمة اللغات
 def get_lang_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="العربية 🇸🇦", callback_data="set_ar"))
@@ -42,28 +44,35 @@ async def set_language(callback: types.CallbackQuery):
 
 @dp.message()
 async def download_video(message: types.Message):
-    if not message.text.startswith("http"): return
-    
+    url = message.text
+    if not url.startswith("http"): return
+
     lang = user_langs.get(message.from_user.id, "en")
     wait_text = "Wait..." if lang == "en" else "چاوەڕێ بکە..." if "ku" in lang else "انتظر..."
-    status = await message.answer(wait_text)
-    
-    file_path = f"{message.chat.id}.mp4"
-    ydl_opts = {'format': 'best[ext=mp4]/best', 'outtmpl': file_path, 'noplaylist': True}
-    
+    status_msg = await message.answer(wait_text)
+
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([message.text])
-        await bot.send_video(message.chat.id, types.FSInputFile(file_path))
-        if os.path.exists(file_path): os.remove(file_path)
+        # استخدام API لتحميل الفيديو بشكل أسرع وأخف على الخادم
+        api_url = f"api.onlinevideoconverter.pro{url}"
+        response = requests.get(api_url).json()
+
+        if response.get("status") == "ok":
+            video_url = response.get("download_url")
+            await bot.send_video(message.chat.id, video_url, caption="تم التحميل بنجاح ✅")
+        else:
+            await message.answer(f"❌ حدث خطأ في معالجة الرابط: {response.get('message', 'غير معروف')}")
+            
     except Exception as e:
-        await message.answer(f"Error: {str(e)}")
+        await message.answer(f"❌ حدث خطأ غير متوقع: {str(e)}")
     finally:
-        await status.delete()
+        await status_msg.delete()
 
 async def main():
-    await dp.start_polling(bot)
+    # تأكد من أن التوكن موضوع هنا قبل التشغيل
+    if TOKEN == "ضع_التوكن_الخاص_بك_هنا":
+        print("الرجاء وضع التوكن في الكود قبل التشغيل!")
+    else:
+        await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
-
